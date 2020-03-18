@@ -57,12 +57,19 @@ parser.add_argument('--exp_name', type=str, default='Baseline',
 args = parser.parse_args()
 
 ################################ Modification ################################
-print('= ' * 45 + args.exp_name + ' =' * 45)
-print('= ' * 45 + args.model + ' =' * 45)
+print('=' * 45 + " " + args.exp_name + " " + '=' * 45)
+print('=' * 45 + " " + args.model + " " + '=' * 45)
 print('Number of Layers: {:.0f}'.format(args.nlayers))
 print('Embedding Size: {:.0f}'.format(args.nhid))
 print('BPTT Length: {:.0f}'.format(args.bptt))
 print('Epochs: {:.0f}'.format(args.epochs))
+
+total_batch_time = 0
+total_train_time = 0
+total_val_time = 0
+total_save_time = 0
+total_load_time = 0
+total_test_time = 0
 ################################ Modification ################################
 
 # Set the random seed manually for reproducibility.
@@ -91,6 +98,10 @@ corpus = data.Corpus(args.data)
 # dependence of e. g. 'g' on 'f' can not be learned, but allows more efficient
 # batch processing.
 
+################################ Modification ################################
+batch_start = time.time()
+################################ Modification ################################
+
 def batchify(data, bsz):
     # Work out how cleanly we can divide the dataset into bsz parts.
     nbatch = data.size(0) // bsz
@@ -104,6 +115,11 @@ eval_batch_size = 10
 train_data = batchify(corpus.train, args.batch_size)
 val_data = batchify(corpus.valid, eval_batch_size)
 test_data = batchify(corpus.test, eval_batch_size)
+
+################################ Modification ################################
+total_batch_time += time.time() - batch_start
+################################ Modification ################################
+
 
 ###############################################################################
 # Build the model
@@ -198,10 +214,14 @@ def train():
         if batch % args.log_interval == 0 and batch > 0:
             cur_loss = total_loss / args.log_interval
             elapsed = time.time() - start_time
+            
+################################ Modification ################################
             print('| epoch {:3d} | {:5d}/{:5d} batches | lr {:02.2f} | ms/batch {:5.2f} | '
-                    'loss {:5.2f} | ppl {:8.2f}'.format(
+                    'loss {:5.2f} | ppl {:8.10f}'.format(
                 epoch, batch, len(train_data) // args.bptt, lr,
                 elapsed * 1000 / args.log_interval, cur_loss, math.exp(cur_loss)))
+################################ Modification ################################
+            
             total_loss = 0
             start_time = time.time()
 
@@ -220,15 +240,7 @@ lr = args.lr
 best_val_loss = None
 
 # At any point you can hit Ctrl + C to break out of training early.
-try:
-################################ Modification ################################
-    total_train_time = 0
-    total_val_time = 0
-    total_save_time = 0
-    total_load_time = 0
-    total_test_time = 0
-################################ Modification ################################
-    
+try:   
     for epoch in range(1, args.epochs+1):
         epoch_start_time = time.time()
         
@@ -250,9 +262,13 @@ try:
 ################################ Modification ################################
         
         print('-' * 89)
+        
+################################ Modification ################################
         print('| end of epoch {:3d} | time: {:5.2f}s | valid loss {:5.2f} | '
-                'valid ppl {:8.2f}'.format(epoch, (time.time() - epoch_start_time),
+                'valid ppl {:8.10f}'.format(epoch, (time.time() - epoch_start_time),
                                            val_loss, math.exp(val_loss)))
+################################ Modification ################################
+        
         print('-' * 89)
         # Save the model if the validation loss is the best we've seen so far.
         if not best_val_loss or val_loss < best_val_loss:
@@ -299,15 +315,19 @@ test_start = time.time()
 # Run on test data.
 test_loss = evaluate(test_data)
 print('=' * 89)
-print('| End of training | test loss {:5.2f} | test ppl {:8.2f}'.format(
+
+################################ Modification ################################
+print('| End of training | test loss {:5.2f} | test ppl {:8.10f}'.format(
     test_loss, math.exp(test_loss)))
 print('=' * 89)
+################################ Modification ################################
 
 ################################ Modification ################################
 total_test_time += time.time() - test_start
-total_time = total_train_time + total_val_time + total_save_time + total_load_time + total_test_time
+total_time = total_batch_time + total_train_time + total_val_time + total_save_time + total_load_time + total_test_time
 
 print('Total Time: {:.2f}s'.format(total_time))
+print('Percent Batch: {:.2f}%'.format((total_batch_time/total_time)*100))
 print('Percent Train: {:.2f}%'.format((total_train_time/total_time)*100))
 print('Percent Validation: {:.2f}%'.format((total_val_time/total_time)*100))
 print('Percent Save Best: {:.2f}%'.format((total_save_time/total_time)*100))
