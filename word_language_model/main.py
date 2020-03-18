@@ -57,8 +57,8 @@ parser.add_argument('--exp_name', type=str, default='Baseline',
 args = parser.parse_args()
 
 ################################ Modification ################################
-print('=' * 45 + args.exp_name + '=' * 45)
-print('=' * 45 + args.model + '+' * 45)
+print('= ' * 45 + args.exp_name + ' =' * 45)
+print('= ' * 45 + args.model + ' =' * 45)
 print('Number of Layers: {:.0f}'.format(args.nlayers))
 print('Embedding Size: {:.0f}'.format(args.nhid))
 print('BPTT Length: {:.0f}'.format(args.bptt))
