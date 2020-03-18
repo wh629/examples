@@ -10,6 +10,7 @@ import torch.onnx
 import data
 import model
 
+
 parser = argparse.ArgumentParser(description='PyTorch Wikitext-2 RNN/LSTM/GRU/Transformer Language Model')
 parser.add_argument('--data', type=str, default='./data/wikitext-2',
                     help='location of the data corpus')
@@ -48,8 +49,21 @@ parser.add_argument('--onnx-export', type=str, default='',
 
 parser.add_argument('--nhead', type=int, default=2,
                     help='the number of heads in the encoder/decoder of the transformer model')
+################################ Modification ################################
+parser.add_argument('--exp_name', type=str, default='Baseline',
+                    help='Custom: For printing experiment name')
+################################ Modification ################################
 
 args = parser.parse_args()
+
+################################ Modification ################################
+print('=' * 45 + args.exp_name + '=' * 45)
+print('=' * 45 + args.model + '+' * 45)
+print('Number of Layers: {:.0f}'.format(args.nlayers))
+print('Embedding Size: {:.0f}'.format(args.nhid))
+print('BPTT Length: {:.0f}'.format(args.bptt))
+print('Epochs: {:.0f}'.format(args.epochs))
+################################ Modification ################################
 
 # Set the random seed manually for reproducibility.
 torch.manual_seed(args.seed)
@@ -207,10 +221,34 @@ best_val_loss = None
 
 # At any point you can hit Ctrl + C to break out of training early.
 try:
+################################ Modification ################################
+    total_train_time = 0
+    total_val_time = 0
+    total_save_time = 0
+    total_load_time = 0
+    total_test_time = 0
+################################ Modification ################################
+    
     for epoch in range(1, args.epochs+1):
         epoch_start_time = time.time()
+        
+################################ Modification ################################
+        train_start = time.time()
+################################ Modification ################################
+        
         train()
+        
+################################ Modification ################################
+        total_train_time += time.time() - train_start
+        val_start = time.time()
+################################ Modification ################################
+        
         val_loss = evaluate(val_data)
+        
+################################ Modification ################################
+        total_val_time += time.time() - val_start
+################################ Modification ################################
+        
         print('-' * 89)
         print('| end of epoch {:3d} | time: {:5.2f}s | valid loss {:5.2f} | '
                 'valid ppl {:8.2f}'.format(epoch, (time.time() - epoch_start_time),
@@ -218,15 +256,31 @@ try:
         print('-' * 89)
         # Save the model if the validation loss is the best we've seen so far.
         if not best_val_loss or val_loss < best_val_loss:
+            
+################################ Modification ################################
+            save_start = time.time()
+################################ Modification ################################
+            
             with open(args.save, 'wb') as f:
                 torch.save(model, f)
             best_val_loss = val_loss
+            
+################################ Modification ################################
+            total_save_time += time.time() - save_start
+################################ Modification ################################
+            
         else:
             # Anneal the learning rate if no improvement has been seen in the validation dataset.
             lr /= 4.0
+            
+
 except KeyboardInterrupt:
     print('-' * 89)
     print('Exiting from training early')
+
+################################ Modification ################################
+load_start = time.time()
+################################ Modification ################################
 
 # Load the best saved model.
 with open(args.save, 'rb') as f:
@@ -237,12 +291,29 @@ with open(args.save, 'rb') as f:
     if args.model in ['RNN_TANH', 'RNN_RELU', 'LSTM', 'GRU']:
         model.rnn.flatten_parameters()
 
+################################ Modification ################################
+total_load_time += time.time() - load_start
+test_start = time.time()
+################################ Modification ################################
+
 # Run on test data.
 test_loss = evaluate(test_data)
 print('=' * 89)
 print('| End of training | test loss {:5.2f} | test ppl {:8.2f}'.format(
     test_loss, math.exp(test_loss)))
 print('=' * 89)
+
+################################ Modification ################################
+total_test_time += time.time() - test_start
+total_time = total_train_time + total_val_time + total_save_time + total_load_time + total_test_time
+
+print('Total Time: {:.2f}s'.format(total_time))
+print('Percent Train: {:.2f}%'.format((total_train_time/total_time)*100))
+print('Percent Validation: {:.2f}%'.format((total_val_time/total_time)*100))
+print('Percent Save Best: {:.2f}%'.format((total_save_time/total_time)*100))
+print('Percent Load Best: {:.2f}%'.format((total_load_time/total_time)*100))
+print('Percent Test: {:.2f}%'.format((total_test_time/total_time)*100))
+################################ Modification ################################
 
 if len(args.onnx_export) > 0:
     # Export the model in ONNX format.
