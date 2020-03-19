@@ -64,6 +64,7 @@ print('Embedding Size: {:.0f}'.format(args.nhid))
 print('BPTT Length: {:.0f}'.format(args.bptt))
 print('Epochs: {:.0f}'.format(args.epochs))
 
+total_model_time = 0
 total_batch_time = 0
 total_train_time = 0
 total_val_time = 0
@@ -125,6 +126,10 @@ total_batch_time += time.time() - batch_start
 # Build the model
 ###############################################################################
 
+################################ Modification ################################
+model_start = time.time()
+################################ Modification ################################
+
 ntokens = len(corpus.dictionary)
 if args.model == 'Transformer':
     model = model.TransformerModel(ntokens, args.emsize, args.nhead, args.nhid, args.nlayers, args.dropout).to(device)
@@ -132,6 +137,10 @@ else:
     model = model.RNNModel(args.model, ntokens, args.emsize, args.nhid, args.nlayers, args.dropout, args.tied).to(device)
 
 criterion = nn.NLLLoss()
+
+################################ Modification ################################
+total_model_time += time.time() - model_start
+################################ Modification ################################
 
 ###############################################################################
 # Training code
@@ -324,9 +333,10 @@ print('=' * 89)
 
 ################################ Modification ################################
 total_test_time += time.time() - test_start
-total_time = total_batch_time + total_train_time + total_val_time + total_save_time + total_load_time + total_test_time
+total_time = total_model_time + total_batch_time + total_train_time + total_val_time + total_save_time + total_load_time + total_test_time
 
 print('Total Time: {:.2f}s'.format(total_time))
+print('Percent Model: {:.2f}%'.format((total_model_time/total_time)*100))
 print('Percent Batch: {:.2f}%'.format((total_batch_time/total_time)*100))
 print('Percent Train: {:.2f}%'.format((total_train_time/total_time)*100))
 print('Percent Validation: {:.2f}%'.format((total_val_time/total_time)*100))
